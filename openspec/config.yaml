@@ -1,0 +1,59 @@
+schema: spec-driven
+
+# Project context — 建立 artifact 時提供給 AI 的脈絡
+context: |
+  專案：親子資源地圖系統 (Family Resource Map)
+  目標：以地圖為核心，整合公園/親子餐廳/哺乳室廁所/活動/醫療等親子資源，
+        支援使用者回報、管理員審查、政府開放資料匯入、Google Maps 導航跳轉。
+
+  技術棧：
+    - 前端：Vue 3 + Vite + Pinia + Vue Router + Leaflet.js(OpenStreetMap 底圖，無金鑰)
+    - 後端：ASP.NET Core 8 Web API
+    - ORM：EF Core + Npgsql + NetTopologySuite（僅作查詢/對應，不管理 schema）
+    - DB：PostgreSQL 16 + PostGIS
+    - DB 遷移：Flyway 版本化 SQL（schema 的唯一真實來源）
+    - 認證：自訂 users 表 + JWT(accessToken 15m / refreshToken 7d 輪替) + OAuth(Google/Line)
+    - 圖片：S3 相容物件儲存，後端以 IObjectStorage 介面抽象
+    - 部署：Docker Compose(本機開發優先)
+
+  能力(capabilities)：
+    auth / spot-management / reviews / admin-moderation / gov-import / map-navigation / db-migration
+
+  角色：guest(瀏覽) / user(回報、評價、上傳) / admin(審查、管理、匯入)
+
+  關鍵決策(不可違反)：
+    - Schema 擁有權歸 Flyway；嚴禁啟用或執行 EF Core Migrations。
+    - 景點採軟刪除(deleted_at)；所有公開查詢/詳情/待審查一律排除已刪除。
+    - 圖片僅在 DB 存物件儲存 URL，業務碼不直接依賴特定供應商 SDK。
+    - 認證行為需求不變，底層用自訂 users 表 + PasswordHasher/BCrypt。
+
+  慣例：
+    - API Base /api；JSON 欄位 camelCase、DB 欄位 snake_case。
+    - 時間 ISO 8601 UTC；座標 WGS84 / SRID 4326；ST_MakePoint(lng, lat)。
+    - 統一成功/失敗回應格式與 errorCode；例外集中於中介層處理。
+    - 清單端點一律強制分頁(page/pageSize，pageSize 上限 100)，禁止無上限查詢。
+    - 權限後端強制([Authorize]/[Authorize(Roles="Admin")])，前端守衛僅體驗層。
+    - 文件與 artifact 一律使用繁體中文(zh-TW)。
+
+# Per-artifact rules — 各 artifact 的產出規範
+rules:
+  proposal:
+    - 必含 Why / What Changes / Impact 三段，控制在 400 字內。
+    - 一律加入 "Non-goals(本期不做)" 段落，明確劃清範圍。
+    - 跨能力或破壞性變更(如改 schema 擁有權)須在 Impact 標示風險。
+
+  specs:
+    - 每條需求用 "### Requirement:" 開頭，敘述須含 SHALL/MUST 關鍵字。
+    - 每條需求至少一個 "#### Scenario:"，以 GIVEN/WHEN/THEN 描述可驗證行為。
+    - 只寫行為(what)，不寫實作(how)；實作細節放 design.md。
+    - 涵蓋正向、邊界與錯誤情境(例如 401/403/404/409/422)。
+
+  design:
+    - 記錄關鍵技術決策與取捨理由，尤其跨切面(Flyway vs EF、認證底層)。
+    - 列出受影響的 capabilities 與既有 spec，標明相容性。
+    - 涉及 DB 變更時附遷移策略與索引/約束考量。
+
+  tasks:
+    - 拆成可獨立驗證的小單元，每項標 [ ]，預估 ≤ 2 小時。
+    - 每個任務群組附「驗證」子項(指令或預期結果)。
+    - DB 相關任務須含「空庫 migrate 成功」與負向(校驗失敗中止)驗證。

@@ -1,0 +1,7 @@
+﻿services:
+  maplay:
+    image: maplay
+    build:
+      context: .
+      dockerfile: maplay/Dockerfile
+

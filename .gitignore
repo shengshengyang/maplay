@@ -1,0 +1,48 @@
+# ===== .NET / ASP.NET Core =====
+bin/
+obj/
+/packages/
+*.user
+.vs/
+.idea
+.claude
+
+# User Secrets
+secrets.json
+appsettings.*.local.json
+
+# Publish output
+/publish/
+*.pubxml.user
+
+# ===== 環境變數 / 敏感設定 =====
+.env
+.env.local
+.env.*.local
+flyway.conf
+
+# ===== Vue 3 / Vite (前端) =====
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vite/
+
+# ===== Flyway =====
+# migration 腳本本身應 commit，但本機覆寫設定不應 commit
+flyway.conf.local
+
+# ===== JetBrains Rider =====
+riderModule.iml
+/_ReSharper.Caches/
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/shelf/
+.idea/**/contentModel.xml
+.idea/**/.idea.maplay.iml
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+desktop.ini
