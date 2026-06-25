@@ -1,6 +1,138 @@
-@maplay_HostAddress = http://localhost:5151
+@host = http://localhost:8080
+@accessToken = paste-access-token-here
 
-GET {{maplay_HostAddress}}/weatherforecast/
-Accept: application/json
+### 註冊
+POST {{host}}/api/auth/register
+Content-Type: application/json
 
-###
+{ "email": "user@example.com", "password": "abcd1234", "displayName": "測試使用者" }
+
+### 登入（回應 body 有 accessToken，Set-Cookie 下發 refreshToken）
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "user@example.com", "password": "abcd1234" }
+
+### 刷新（帶 refreshToken Cookie）
+POST {{host}}/api/auth/refresh
+
+### 取得個人資料
+GET {{host}}/api/auth/me
+Authorization: Bearer {{accessToken}}
+
+### 登出
+POST {{host}}/api/auth/logout
+
+### Google OAuth（前端取得 code 後送來；未設定 ClientId 回 501）
+POST {{host}}/api/auth/google
+Content-Type: application/json
+
+{ "code": "authorization-code", "redirectUri": "http://localhost:5173/oauth/google" }
+
+### 附近景點查詢（台中市政府為中心，2km）
+GET {{host}}/api/spots/nearby?lat=24.1477&lng=120.6736&radius=2000
+
+### 進行中期間限定景點
+GET {{host}}/api/spots/active-temp?page=1&pageSize=20
+
+### 回報新景點（需登入）
+POST {{host}}/api/spots
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "豐樂雕塑公園", "category": "park", "spotType": "permanent",
+  "lat": 24.1382, "lng": 120.6406,
+  "ageGroups": ["0-3", "3-7"], "facilities": ["parking", "play_area"],
+  "address": "台中市南屯區"
+}
+
+### 景點詳情
+GET {{host}}/api/spots/00000000-0000-0000-0000-000000000000
+
+### 上傳景點圖片（multipart）
+POST {{host}}/api/spots/00000000-0000-0000-0000-000000000000/images
+Authorization: Bearer {{accessToken}}
+
+### 新增評價（需登入）
+POST {{host}}/api/spots/00000000-0000-0000-0000-000000000000/reviews
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "rating": 5, "cleanLevel": 4, "content": "很適合帶小孩", "visitedAt": "2026-06-01" }
+
+### 修改自己的評價
+PUT {{host}}/api/spots/00000000-0000-0000-0000-000000000000/reviews/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "rating": 4, "cleanLevel": 4, "content": "更新內容" }
+
+### [admin] 待審查清單
+GET {{host}}/api/admin/spots/pending?page=1&pageSize=20
+Authorization: Bearer {{accessToken}}
+
+### [admin] 核准景點
+PUT {{host}}/api/admin/spots/00000000-0000-0000-0000-000000000000/approve
+Authorization: Bearer {{accessToken}}
+
+### [admin] 退回景點（rejectReason 必填）
+PUT {{host}}/api/admin/spots/00000000-0000-0000-0000-000000000000/reject
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "rejectReason": "座標不正確" }
+
+### [admin] 編輯景點
+PUT {{host}}/api/admin/spots/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "name": "更新後名稱", "facilities": ["nursing_room"] }
+
+### [admin] 軟刪除景點
+DELETE {{host}}/api/admin/spots/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{accessToken}}
+
+### [admin] 還原景點
+POST {{host}}/api/admin/spots/00000000-0000-0000-0000-000000000000/restore
+Authorization: Bearer {{accessToken}}
+
+### [admin] 使用者管理（搜尋）
+GET {{host}}/api/admin/users?page=1&pageSize=20&search=example
+Authorization: Bearer {{accessToken}}
+
+### [admin] 匯入廁所資料（去重 by govDataId）
+POST {{host}}/api/admin/import/toilet
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "records": [
+  { "number": "T-001", "公廁名稱": "台中公園公廁", "經度": "120.685", "緯度": "24.144", "地址": "台中市北區" }
+] }
+
+### [admin] 匯入公園 GeoJSON
+POST {{host}}/api/admin/import/park
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "type": "FeatureCollection", "features": [
+  { "type": "Feature", "id": "P-001",
+    "geometry": { "type": "Point", "coordinates": [120.6406, 24.1382] },
+    "properties": { "name": "豐樂雕塑公園" } }
+] }
+
+### [admin] 自訂欄位對應匯入
+POST {{host}}/api/admin/import/custom
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "records": [ { "場館名稱": "親子館", "lon": "120.65", "la": "24.15" } ],
+  "mapping": { "name": "場館名稱", "lng": "lon", "lat": "la" },
+  "defaultCategory": "activity"
+}
+
+### [admin] 匯入紀錄
+GET {{host}}/api/admin/import/history?page=1&pageSize=20
+Authorization: Bearer {{accessToken}}
