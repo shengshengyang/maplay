@@ -1,7 +1,101 @@
-﻿services:
+services:
+  # PostgreSQL 16 + PostGIS：schema 由 Flyway 管理
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: maplay
+      POSTGRES_USER: maplay
+      POSTGRES_PASSWORD: maplay
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U maplay -d maplay"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Flyway：資料庫結構唯一真實來源；app 啟動前完成所有待處理 migration
+  flyway:
+    image: flyway/flyway:10
+    command: >-
+      -url=jdbc:postgresql://db:5432/maplay
+      -user=maplay
+      -password=maplay
+      -connectRetries=20
+      -baselineOnMigrate=false
+      migrate
+    volumes:
+      - ./db/migration:/flyway/sql:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # MinIO：S3 相容物件儲存（本機開發）
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # 建立公開讀取的圖片 bucket
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >-
+      /bin/sh -c "
+      mc alias set local http://minio:9000 minioadmin minioadmin &&
+      mc mb --ignore-existing local/maplay-images &&
+      mc anonymous set download local/maplay-images
+      "
+
   maplay:
     image: maplay
     build:
       context: .
       dockerfile: maplay/Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      flyway:
+        condition: service_completed_successfully
+      minio:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Default: "Host=db;Port=5432;Database=maplay;Username=maplay;Password=maplay"
+      Jwt__Issuer: "maplay"
+      Jwt__Audience: "maplay"
+      Jwt__Secret: "dev-only-super-secret-key-change-me-please-32bytes-minimum"
+      Jwt__AccessTokenMinutes: "15"
+      Jwt__RefreshTokenDays: "7"
+      Storage__Endpoint: "http://minio:9000"
+      Storage__PublicEndpoint: "http://localhost:9000"
+      Storage__AccessKey: "minioadmin"
+      Storage__SecretKey: "minioadmin"
+      Storage__Bucket: "maplay-images"
+      Storage__ForcePathStyle: "true"
+      # OAuth（本機開發可留空，未設定時相關端點回 501）
+      OAuth__Google__ClientId: ""
+      OAuth__Google__ClientSecret: ""
+      OAuth__Line__ChannelId: ""
+      OAuth__Line__ChannelSecret: ""
 
+volumes:
+  pgdata:
+  miniodata:

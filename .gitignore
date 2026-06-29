@@ -19,18 +19,11 @@ appsettings.*.local.json
 .env
 .env.local
 .env.*.local
-flyway.conf
-
-# ===== Vue 3 / Vite (前端) =====
-node_modules/
-dist/
-dist-ssr/
-*.local
-.vite/
 
 # ===== Flyway =====
-# migration 腳本本身應 commit，但本機覆寫設定不應 commit
+# migration 腳本與基礎設定應 commit，但本機覆寫設定不應 commit
 flyway.conf.local
+# .env.example 包含環境變數範本，應 commit
 
 # ===== JetBrains Rider =====
 riderModule.iml
