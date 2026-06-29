@@ -5,7 +5,7 @@ public class AppException : Exception
 {
     public int StatusCode { get; }
     public string ErrorCode { get; }
-    public object? Data { get; }
+    public new object? Data { get; }
 
     public AppException(int statusCode, string errorCode, string message, object? data = null)
         : base(message)

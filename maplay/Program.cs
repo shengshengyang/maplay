@@ -102,7 +102,11 @@ builder.Services.Configure<ApiBehaviorOptions>(opt =>
     };
 });
 
-builder.Services.AddOpenApi();
+// ---- OpenAPI 文件配置 (僅開發環境) ----
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddOpenApi();
+}
 
 var app = builder.Build();
 
@@ -112,7 +116,28 @@ await SchemaGuard.EnsureMigratedAsync(app);
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
+{
     app.MapOpenApi();
+
+    // 使用 Scalar UI 作為 API 文件介面
+    app.MapGet("/scalar/{version}", async context =>
+    {
+        context.Response.ContentType = "text/html";
+        await context.Response.WriteAsync("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>親子資源地圖系統 API</title>
+                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@scalar/dist/latest/style.css">
+            </head>
+            <body>
+                <script id="api-reference" data-url="/openapi/v1.json"></script>
+                <script src="https://cdn.jsdelivr.net/npm/@scalar/dist/latest/browser.js"></script>
+            </body>
+            </html>
+            """);
+    });
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -130,7 +155,7 @@ static async Task WriteAuthError(HttpResponse resp, int status, string code, str
     if (resp.HasStarted) return;
     resp.StatusCode = status;
     resp.ContentType = "application/json; charset=utf-8";
-    await resp.WriteAsync(JsonSerializer.Serialize(ApiResponse.Fail(code, message), JsonOptions.Default));
+    await resp.WriteAsync(JsonSerializer.Serialize(ApiResponse.Fail(code, message), Maplay.Common.JsonOptions.Default));
 }
 
 /// <summary>啟動時確認 Flyway schema_history 至少完成預期 migration，否則中止啟動。</summary>
