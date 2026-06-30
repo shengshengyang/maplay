@@ -119,28 +119,7 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 
-    // Scalar UI - 使用最新的穩定版本
-    app.MapGet("/scalar", async context =>
-    {
-        context.Response.ContentType = "text/html; charset=utf-8";
-        await context.Response.WriteAsync("""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>親子資源地圖系統 API</title>
-                <meta charset="utf-8" />
-                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@scalar/dist/latest/style.css">
-            </head>
-            <body>
-                <script id="api-reference" data-url="/openapi/v1.json"></script>
-                <script src="https://cdn.jsdelivr.net/npm/@scalar/dist/latest/browser.js"></script>
-            </body>
-            </html>
-            """);
-    });
-
-    // Swagger UI - 作為備選方案
+    // Swagger UI - 添加 JWT 認證支持
     app.MapGet("/swagger", async context =>
     {
         context.Response.ContentType = "text/html; charset=utf-8";
@@ -153,18 +132,68 @@ if (app.Environment.IsDevelopment())
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
                 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
                 <style>
-                    html { box-sizing: border-box; overflow: -moz-scrollbars-vertical; overflow-y: scroll; }
+                    html { box-sizing: border-box; overflow-y: scroll; }
                     *, *:before, *:after { box-sizing: inherit; }
-                    body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+                    body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
                     #swagger-ui { max-width: 1460px; margin: 0 auto; padding: 20px; }
+                    .token-controls {
+                        position: fixed;
+                        top: 10px;
+                        right: 10px;
+                        z-index: 9999;
+                        background: white;
+                        padding: 10px;
+                        border: 1px solid #ccc;
+                        border-radius: 4px;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    }
+                    .token-controls button {
+                        margin: 0 5px;
+                        padding: 8px 15px;
+                        cursor: pointer;
+                        background: #61affe;
+                        color: white;
+                        border: none;
+                        border-radius: 3px;
+                        font-size: 14px;
+                    }
+                    .token-controls button:hover {
+                        background: #4e9afe;
+                    }
+                    .token-controls .clear-btn {
+                        background: #ff6b6b;
+                    }
+                    .token-controls .clear-btn:hover {
+                        background: #ee5a5a;
+                    }
                 </style>
             </head>
             <body>
+                <div class="token-controls">
+                    <button onclick="setToken()">🔑 設定 Token</button>
+                    <button class="clear-btn" onclick="clearToken()">🗑️ 清除 Token</button>
+                </div>
                 <div id="swagger-ui"></div>
-                <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
-                <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
+                <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js" crossorigin="anonymous"></script>
+                <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-standalone-preset.js" crossorigin="anonymous"></script>
                 <script>
+                    function setToken() {
+                        const token = prompt('請輸入您的 JWT Token:');
+                        if (token) {
+                            localStorage.setItem('swagger_jwt_token', token);
+                            alert('Token 已設定！重新載入頁面後生效。');
+                            location.reload();
+                        }
+                    }
+
+                    function clearToken() {
+                        localStorage.removeItem('swagger_jwt_token');
+                        alert('Token 已清除！重新載入頁面後生效。');
+                        location.reload();
+                    }
+
                     window.onload = function() {
+                        const token = localStorage.getItem('swagger_jwt_token');
                         SwaggerUIBundle({
                             url: '/openapi/v1.json',
                             dom_id: '#swagger-ui',
@@ -174,7 +203,18 @@ if (app.Environment.IsDevelopment())
                             layout: "BaseLayout",
                             defaultModelsExpandDepth: 1,
                             defaultModelExpandDepth: 1,
-                            tryItOutEnabled: true
+                            tryItOutEnabled: true,
+                            requestInterceptor: (request) => {
+                                if (token && request.url.includes('/api/')) {
+                                    request.headers.Authorization = 'Bearer ' + token;
+                                }
+                                return request;
+                            },
+                            responseInterceptor: (response) => {
+                                return response;
+                            },
+                            validatorUrl: null,
+                            docExpansion: 'list'
                         });
                     };
                 </script>
