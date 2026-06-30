@@ -1,0 +1,90 @@
+# Windows 相容性修復版本
+# 使用較舊版本和更相容的配置
+
+services:
+  # PostgreSQL 14 + PostGIS：更穩定的版本
+  db:
+    image: postgis/postgis:14-3.3
+    environment:
+      POSTGRES_DB: maplay
+      POSTGRES_USER: maplay
+      POSTGRES_PASSWORD: maplay
+      # 臨時禁用某些功能以提高相容性
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U maplay -d maplay"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+    networks:
+      - maplay-network
+    # Windows 相容性設定
+    shm_size: 512mb
+    # 使用容器內的 PID namespace
+    pid: "host"
+
+  # Flyway：資料庫結構唯一真實來源
+  flyway:
+    image: flyway/flyway:10
+    command: >-
+      -url=jdbc:postgresql://db:5432/maplay
+      -user=maplay
+      -password=maplay
+      -connectRetries=30
+      -baselineOnMigrate=false
+      migrate
+    volumes:
+      - ./db/migration:/flyway/sql:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - maplay-network
+
+  # MinIO：S3 相容物件儲存
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: maplay_minio
+      MINIO_ROOT_PASSWORD: maplay_minio_secure_password_2024
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - maplay-network
+
+  # 建立公開讀取的圖片 bucket
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >-
+      /bin/sh -c "
+      mc alias set local http://minio:9000 maplay_minio maplay_minio_secure_password_2024 &&
+      mc mb --ignore-existing local/maplay-images &&
+      mc anonymous set download local/maplay-images
+      "
+    networks:
+      - maplay-network
+
+volumes:
+  pgdata:
+  miniodata:
+
+networks:
+  maplay-network:
+    name: maplay_maplay-network
+    driver: bridge

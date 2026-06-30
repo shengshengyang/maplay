@@ -6,10 +6,11 @@
 
 **技術架構:**
 - 🌐 **前端**: Vue 3 + Vite + Pinia + Vue Router + Leaflet.js
-- ⚙️ **後端**: ASP.NET Core 8 Web API
+- ⚙️ **後端**: ASP.NET Core 10 Web API
 - 🗄️ **資料庫**: PostgreSQL 16 + PostGIS
 - 🔄 **遷移**: Flyway 版本化 SQL (schema 唯一來源)
 - 🔐 **認證**: JWT + OAuth (Google/Line)
+- 📚 **文檔**: .NET 原生 OpenAPI + Scalar UI
 - 📦 **部署**: Docker Compose
 - 💾 **儲存**: S3 相容物件儲存 (MinIO 本機開發)
 
@@ -45,9 +46,21 @@ docker compose logs -f
 
 ### 訪問服務
 
-- **API**: http://localhost:8080
+- **Swagger UI** (推薦): http://localhost:8080/swagger (穩定的互動式 API 文檔)
+- **Scalar UI**: http://localhost:8080/scalar/v1 (現代化 API 文檔介面)
+- **OpenAPI JSON**: http://localhost:8080/openapi/v1.json
 - **MinIO Console**: http://localhost:9001 (minioadmin/minioadmin)
 - **PostgreSQL**: localhost:5432 (maplay/maplay)
+
+### 快速測試
+
+```bash
+# 使用 PowerShell 測試腳本
+.\test-api-fixed.ps1
+
+# 或手動測試 API
+Invoke-WebRequest http://localhost:8080/openapi/v1.json
+```
 
 ## 資料庫遷移設定
 
@@ -188,6 +201,9 @@ docker exec -it maplay-db-1 psql -U maplay -d maplay -c "\dt"
 ### 相關文件
 
 📚 **詳細資源**:
+- **API 文檔指南**: [OPENAPI_GUIDE.md](./OPENAPI_GUIDE.md)
+- **Docker 指令**: [DOCKER_COMMANDS.md](./DOCKER_COMMANDS.md)
+- **部署說明**: [DOCKER_DEPLOYMENT.md](./DOCKER_DEPLOYMENT.md)
 - **開發者手冊**: [DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md)
 - **遷移工作流程**: `openspec/changes/flyway-schema-migration-setup/migration-workflow-guide.md`
 - **命名規則**: `openspec/changes/flyway-schema-migration-setup/migration-naming-dependency-rules.md`
@@ -264,13 +280,30 @@ public class AppDbContext : DbContext
 
 ## API 文檔
 
+### 互動式文檔
+
+專案使用 **.NET 10 原生 OpenAPI** + **Scalar UI** 提供現代化的 API 文檔：
+
+- 📖 **Scalar UI**: http://localhost:8080/scalar/v1
+- 📄 **OpenAPI 規範**: http://localhost:8080/openapi/v1.json
+- 🧪 **測試腳本**: `.\test-api.ps1`
+
+### 文檔特色
+
+- ✅ **自動生成**: 從程式碼 XML 註釋自動生成
+- 🔍 **即時測試**: 在瀏覽器中直接測試 API
+- 🔐 **JWT 認證**: 支援 Bearer Token 認證測試
+- 📝 **完整範例**: 包含請求/回應範例
+- 🎨 **現代介面**: Scalar UI 提供更好的使用體驗
+
 ### 主要端點
 
+- `POST /api/auth/register` - 使用者註冊
+- `POST /api/auth/login` - 使用者登入
+- `GET /api/auth/me` - 獲取當前用戶資訊 (需認證)
 - `GET /api/spots` - 景點列表 (分頁)
 - `GET /api/spots/{id}` - 景點詳情
 - `POST /api/spots` - 新增景點 (需認證)
-- `POST /api/auth/login` - 使用者登入
-- `POST /api/auth/register` - 使用者註冊
 - `GET /api/reviews` - 評價列表
 
 ### 認證機制
@@ -278,6 +311,8 @@ public class AppDbContext : DbContext
 - **JWT Token**: Access token (15分鐘) + Refresh token (7天)
 - **OAuth**: 支援 Google、LINE 登入
 - **Bearer Token**: 請求頭格式 `Authorization: Bearer {token}`
+
+📚 **詳細使用說明**: [OPENAPI_GUIDE.md](./OPENAPI_GUIDE.md)
 
 ## 部署
 

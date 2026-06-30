@@ -119,20 +119,65 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 
-    // 使用 Scalar UI 作為 API 文件介面
-    app.MapGet("/scalar/{version}", async context =>
+    // Scalar UI - 使用最新的穩定版本
+    app.MapGet("/scalar", async context =>
     {
-        context.Response.ContentType = "text/html";
+        context.Response.ContentType = "text/html; charset=utf-8";
         await context.Response.WriteAsync("""
             <!DOCTYPE html>
             <html>
             <head>
                 <title>親子資源地圖系統 API</title>
+                <meta charset="utf-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
                 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@scalar/dist/latest/style.css">
             </head>
             <body>
                 <script id="api-reference" data-url="/openapi/v1.json"></script>
                 <script src="https://cdn.jsdelivr.net/npm/@scalar/dist/latest/browser.js"></script>
+            </body>
+            </html>
+            """);
+    });
+
+    // Swagger UI - 作為備選方案
+    app.MapGet("/swagger", async context =>
+    {
+        context.Response.ContentType = "text/html; charset=utf-8";
+        await context.Response.WriteAsync("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>親子資源地圖系統 API - Swagger UI</title>
+                <meta charset="utf-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
+                <style>
+                    html { box-sizing: border-box; overflow: -moz-scrollbars-vertical; overflow-y: scroll; }
+                    *, *:before, *:after { box-sizing: inherit; }
+                    body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+                    #swagger-ui { max-width: 1460px; margin: 0 auto; padding: 20px; }
+                </style>
+            </head>
+            <body>
+                <div id="swagger-ui"></div>
+                <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+                <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
+                <script>
+                    window.onload = function() {
+                        SwaggerUIBundle({
+                            url: '/openapi/v1.json',
+                            dom_id: '#swagger-ui',
+                            deepLinking: true,
+                            presets: [SwaggerUIBundle.presets.apis, SwaggerUIBundle.StandalonePreset],
+                            plugins: [SwaggerUIBundle.plugins.DownloadUrl],
+                            layout: "BaseLayout",
+                            defaultModelsExpandDepth: 1,
+                            defaultModelExpandDepth: 1,
+                            tryItOutEnabled: true
+                        });
+                    };
+                </script>
             </body>
             </html>
             """);

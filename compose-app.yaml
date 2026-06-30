@@ -1,0 +1,43 @@
+# 應用程式服務：Maplay 後端
+# 使用方式：
+#   1. 先啟動基礎設施：docker-compose -f compose-infrastructure.yaml up -d
+#   2. 再啟動應用程式：docker-compose -f compose-app.yaml up -d
+#   更新部署時只需重建 app 服務：docker-compose -f compose-app.yaml up -d --build maplay
+
+services:
+  maplay:
+    image: maplay
+    build:
+      context: .
+      dockerfile: maplay/Dockerfile
+    ports:
+      - "8080:8080"
+    # 注意：depends_on 無法跨 compose 檔案工作
+    # 請確保先啟動 compose-infrastructure.yaml 並等待服務就緒
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Default: "Host=db;Port=5432;Database=maplay;Username=maplay;Password=maplay"
+      Jwt__Issuer: "maplay"
+      Jwt__Audience: "maplay"
+      Jwt__Secret: "dev-only-super-secret-key-change-me-please-32bytes-minimum"
+      Jwt__AccessTokenMinutes: "15"
+      Jwt__RefreshTokenDays: "7"
+      Storage__Endpoint: "http://minio:9000"
+      Storage__PublicEndpoint: "http://localhost:9000"
+      Storage__AccessKey: "maplay_minio"
+      Storage__SecretKey: "maplay_minio_secure_password_2024"
+      Storage__Bucket: "maplay-images"
+      Storage__ForcePathStyle: "true"
+      # OAuth（本機開發可留空，未設定時相關端點回 501）
+      OAuth__Google__ClientId: ""
+      OAuth__Google__ClientSecret: ""
+      OAuth__Line__ChannelId: ""
+      OAuth__Line__ClientSecret: ""
+    networks:
+      - maplay-network
+
+networks:
+  maplay-network:
+    name: maplay_maplay-network
+    external: true
