@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    environment:
+      - VITE_API_BASE_URL=http://backend:5000/api
+    depends_on:
+      - backend
+    networks:
+      - maplay-network
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=maplay;Username=maplay;Password=maplay_password
+      - JWT__Secret=your_jwt_secret_here
+      - JWT__AccessTokenExpirationMinutes=15
+      - JWT__RefreshTokenExpirationDays=7
+    depends_on:
+      - postgres
+    networks:
+      - maplay-network
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=maplay
+      - POSTGRES_USER=maplay
+      - POSTGRES_PASSWORD=maplay_password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - maplay-network
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+
+networks:
+  maplay-network:
+    driver: bridge
