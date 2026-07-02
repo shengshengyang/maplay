@@ -3,7 +3,7 @@
 ## Purpose
 允許登入用戶收藏感興趣的景點，管理個人收藏列表，提升用戶粘性和平台參與度。
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: 添加收藏
 系統 SHALL 提供 `POST /api/favorites`，需登入，讓用戶收藏指定景點。若該景點已被收藏，MUST 回 409 `ALREADY_FAVORITED`；若景點不存在或已刪除，MUST 回 404 `SPOT_NOT_FOUND`。

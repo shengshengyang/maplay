@@ -7,8 +7,8 @@
       </div>
 
       <!-- Error message -->
-      <div v-if="errorMessage" class="error-message">
-        {{ errorMessage }}
+      <div v-if="authStore.error" class="error-message">
+        {{ authStore.error }}
       </div>
 
       <!-- Login form -->
@@ -21,7 +21,7 @@
             type="email"
             required
             :placeholder="$t('auth.login.emailPlaceholder') || '請輸入電子郵件'"
-            :disabled="loading"
+            :disabled="authStore.loading"
           />
         </div>
 
@@ -33,12 +33,12 @@
             type="password"
             required
             :placeholder="$t('auth.login.passwordPlaceholder') || '請輸入密碼'"
-            :disabled="loading"
+            :disabled="authStore.loading"
           />
         </div>
 
-        <button type="submit" class="login-button" :disabled="loading">
-          <span v-if="!loading">{{ $t('auth.login.submit') || '登入' }}</span>
+        <button type="submit" class="login-button" :disabled="authStore.loading">
+          <span v-if="!authStore.loading">{{ $t('auth.login.submit') || '登入' }}</span>
           <span v-else class="loading-spinner">{{ $t('auth.login.loading') || '登入中...' }}</span>
         </button>
       </form>
@@ -49,15 +49,15 @@
           <span>{{ $t('auth.login.or') || '或' }}</span>
         </div>
 
-        <button @click="handleGoogleLogin" class="oauth-button google-button" :disabled="loading">
+        <a :href="authService.getGoogleOAuthUrl()" class="oauth-button google-button">
           <span class="google-icon">G</span>
           {{ $t('auth.login.google') || '使用 Google 登入' }}
-        </button>
+        </a>
 
-        <button @click="handleLineLogin" class="oauth-button line-button" :disabled="loading">
+        <a :href="authService.getLineOAuthUrl()" class="oauth-button line-button">
           <span class="line-icon">L</span>
           {{ $t('auth.login.line') || '使用 LINE 登入' }}
-        </button>
+        </a>
       </div>
 
       <!-- Register link -->
@@ -88,82 +88,18 @@ const loginData = ref({
   password: ''
 })
 
-const loading = ref(false)
-const errorMessage = ref('')
-
 const handleLogin = async () => {
-  loading.value = true
-  errorMessage.value = ''
-
   try {
-    const response = await authService.login(loginData.value)
-
-    // Update auth store
-    authStore.setAuth({
-      accessToken: response.accessToken,
-      refreshToken: response.refreshToken
-    })
-    authStore.setUser(response.user)
+    await authStore.login(loginData.value)
 
     // Redirect to original destination or home
     const redirectTo = (route.query.redirect as string) || '/'
     router.push(redirectTo)
   } catch (error: any) {
-    errorMessage.value = error.message || '登入失敗，請檢查您的帳號密碼'
-  } finally {
-    loading.value = false
+    // Error is handled in authStore
+    console.error('Login failed:', error)
   }
 }
-
-const handleGoogleLogin = () => {
-  const oauthUrl = authService.getGoogleOAuthUrl()
-  window.location.href = oauthUrl
-}
-
-const handleLineLogin = () => {
-  const oauthUrl = authService.getLineOAuthUrl()
-  window.location.href = oauthUrl
-}
-
-// Check for OAuth callback parameters
-const checkOAuthCallback = () => {
-  const code = route.query.code as string
-  const provider = route.query.provider as string
-
-  if (code && provider) {
-    handleOAuthCallback(code, provider)
-  }
-}
-
-const handleOAuthCallback = async (code: string, provider: string) => {
-  loading.value = true
-  errorMessage.value = ''
-
-  try {
-    const response = await authService.oauthCallback({
-      code,
-      provider: provider as 'google' | 'line',
-      redirectUri: `${window.location.origin}/login`
-    })
-
-    // Update auth store
-    authStore.setAuth({
-      accessToken: response.accessToken,
-      refreshToken: response.refreshToken
-    })
-    authStore.setUser(response.user)
-
-    // Redirect to home
-    router.push('/')
-  } catch (error: any) {
-    errorMessage.value = error.message || 'OAuth 登入失敗'
-  } finally {
-    loading.value = false
-  }
-}
-
-// Check for OAuth callback on mount
-checkOAuthCallback()
 </script>
 
 <style scoped>
@@ -303,15 +239,11 @@ checkOAuthCallback()
   justify-content: center;
   gap: 10px;
   transition: background-color 0.3s;
+  text-decoration: none;
 }
 
 .oauth-button:hover:not(:disabled) {
   background-color: #f5f5f5;
-}
-
-.oauth-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 .google-icon {

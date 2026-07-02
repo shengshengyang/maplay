@@ -2,17 +2,22 @@
 
 ## Purpose
 管理親子景點的查詢、詳情、回報與圖片。景點分永久與期間限定，含分類、適合年齡、設施標籤與地理座標；圖片儲存於 S3 相容物件儲存。
-
 ## Requirements
-
 ### Requirement: 附近景點查詢
-系統 SHALL 提供 `GET /api/spots/nearby`，依中心座標與半徑回傳已核准且未刪除的景點，並附與中心點的距離（公尺），依距離升冪排序。期間限定景點 MUST 僅在 `start_date ≤ today ≤ end_date` 時回傳。查詢 MUST 使用 PostGIS GIST 索引，禁止全表掃描。
+系統 SHALL 提供 `GET /api/spots/nearby`，**允許匿名訪問**，依中心座標與半徑回傳已核准且未刪除的景點，並附與中心點的距離（公尺），依距離升冪排序。期間限定景點 MUST 僅在 `start_date ≤ today ≤ end_date` ���回傳。查詢 MUST 使用 PostGIS GIST 索引，禁止全表掃描。
 
 參數：`lat`(必), `lng`(必), `radius`(預設 2000、上限 20000), `category`(選), `age`(選), `spotType`(選)。
 
+**變更說明：** 移除認證要求，未登入用戶也可查詢附近景點。
+
+#### Scenario: 匿名用戶查詢附近景點
+- **GIVEN** 資料庫存在多筆已核准景點
+- **WHEN** 未登入用戶帶 lat/lng/radius 呼叫
+- **THEN** 回傳景點陣列，每筆含 `distanceMeters`，並依距離由近至遠排序
+
 #### Scenario: 查詢回傳含距離且排序正確
 - **GIVEN** 資料庫存在多筆已核准景點
-- **WHEN** 帶 lat/lng/radius 呼叫
+- **WHEN** 帶 lat/lng/radius 呼��
 - **THEN** 回傳景點陣列，每筆含 `distanceMeters`，並依距離由近至遠排序
 
 #### Scenario: 過期期間限定景點不顯示
@@ -34,7 +39,13 @@
 - **THEN** 回 400 `VALIDATION_ERROR`
 
 ### Requirement: 景點詳情
-系統 SHALL 提供 `GET /api/spots/{id}`，回傳景點完整資訊、圖片清單、評價統計（平均 rating、平均 clean_level、評價則數）與最新數則評價。未核准或已軟刪除的景點 MUST 對非 admin 且非回報本人回 404，以避免資訊洩漏。
+系統 SHALL 提供 `GET /api/spots/{id}`，**允許匿名訪問已核准景點**，回傳景點完整資訊、圖片清單、評價統計（平均 rating、平均 clean_level、評價則數）與最新數則評價。未核准或已軟刪除的景點 MUST 對非 admin 且非回報本人回 404，以避免資訊洩漏。
+
+**變更說明：** 已核准景點對匿名用戶開放，未核准景點仍保持訪問控制。
+
+#### Scenario: 匿名用戶查詢已核准景點詳情
+- **WHEN** 未登入用戶查詢已核准景點
+- **THEN** 回 200 與完整詳情（含圖片與評價統計）
 
 #### Scenario: 取得已核准景點詳情
 - **WHEN** 以任意角色查詢已核准景點
@@ -51,10 +62,17 @@
 - **THEN** 回 404 `SPOT_NOT_FOUND`
 
 ### Requirement: 進行中期間限定景點
-系統 SHALL 提供 `GET /api/spots/active-temp`（分頁），回傳目前在效期內、已核准、未刪除的 temporary 景點。
+系統 SHALL 提供 `GET /api/spots/active-temp`（分頁），**允許匿名訪問**，回傳目前在效期內、已核准、未刪除的 temporary 景點。
+
+**變更說明：** 移除認證要求，未登入用戶也可查詢進行中的期間限定活動。
+
+#### Scenario: 匿名用戶查詢進行中活動
+- **GIVEN** 多筆 temporary 景點，部分在效期內
+- **WHEN** 未��入用戶呼叫該端點
+- **THEN** 僅回傳效期內者
 
 #### Scenario: 僅回傳效期內活動
-- **GIVEN** 多筆 temporary 景點，部分在效期內、部分已過期
+- **GIVEN** 多筆 temporary 景點，部分在效期內、部��已過期
 - **WHEN** 呼叫該端點
 - **THEN** 僅回傳效期內者
 
@@ -106,3 +124,4 @@
 - **GIVEN** 圖片上傳邏輯僅依賴 `IObjectStorage`
 - **WHEN** 替換為不同物件儲存實作
 - **THEN** 上傳/刪除行為不變，無需修改 Controller 或 Service 業務邏輯
+

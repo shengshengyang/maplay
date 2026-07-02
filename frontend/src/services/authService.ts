@@ -10,12 +10,12 @@ import type {
 
 class AuthService {
   private readonly AUTH_ENDPOINTS = {
-    LOGIN: '/auth/login',
-    REGISTER: '/auth/register',
-    REFRESH: '/auth/refresh',
-    LOGOUT: '/auth/logout',
-    VERIFY: '/auth/verify',
-    OAUTH_CALLBACK: '/auth/oauth/callback',
+    LOGIN: '/api/auth/login',
+    REGISTER: '/api/auth/register',
+    REFRESH: '/api/auth/refresh-token',
+    LOGOUT: '/api/auth/logout',
+    VERIFY: '/api/auth/verify',
+    OAUTH_CALLBACK: '/api/auth/oauth/callback',
   }
 
   async login(credentials: LoginRequest): Promise<AuthResponse> {
