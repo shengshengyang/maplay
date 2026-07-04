@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Maplay.Auth;
 
+/// <summary>認證相關 API 控制器</summary>
 [ApiController]
 [Route("api/auth")]
+[Tags("Authentication")]
 public class AuthController : ControllerBase
 {
     private const string RefreshCookie = "refreshToken";
@@ -27,6 +29,10 @@ public class AuthController : ControllerBase
         _jwtOpt = jwtOpt.Value;
     }
 
+    /// <summary>使用者註冊</summary>
+    /// <param name="req">註冊請求資料</param>
+    /// <param name="ct">取消權杖</param>
+    /// <returns>成功時返回使用者資訊 (HTTP 201)</returns>
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest req, CancellationToken ct)
     {
@@ -34,6 +40,10 @@ public class AuthController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, ApiResponse.Ok(user));
     }
 
+    /// <summary>使用者登入</summary>
+    /// <param name="req">登入請求資料</param>
+    /// <param name="ct">取消權杖</param>
+    /// <returns>成功時返回 JWT Token 與使用者資訊 (HTTP 200)</returns>
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest req, CancellationToken ct)
     {
@@ -42,6 +52,9 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse.Ok(result));
     }
 
+    /// <summary>刷新 JWT Token</summary>
+    /// <param name="ct">取消權杖</param>
+    /// <returns>成功時返回新的 JWT Token 與使用者資訊 (HTTP 200)</returns>
     [HttpPost("refresh")]
     public async Task<IActionResult> Refresh(CancellationToken ct)
     {
@@ -51,6 +64,9 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse.Ok(result));
     }
 
+    /// <summary>使用者登出</summary>
+    /// <param name="ct">取消權杖</param>
+    /// <returns>成功時返回登出確認訊息 (HTTP 200)</returns>
     [HttpPost("logout")]
     public async Task<IActionResult> Logout(CancellationToken ct)
     {
@@ -60,6 +76,9 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse.Ok(new { message = "已登出" }));
     }
 
+    /// <summary>取得當前使用者資訊</summary>
+    /// <param name="ct">取消權杖</param>
+    /// <returns>成功時返回使用者資訊 (HTTP 200)，未認證時返回 401</returns>
     [Authorize]
     [HttpGet("me")]
     public async Task<IActionResult> Me(CancellationToken ct)
@@ -68,10 +87,18 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse.Ok(user));
     }
 
+    /// <summary>Google OAuth 登入</summary>
+    /// <param name="req">OAuth 回調請求資料</param>
+    /// <param name="ct">取消權杖</param>
+    /// <returns>成功時返回 JWT Token 與使用者資訊 (HTTP 200)</returns>
     [HttpPost("google")]
     public Task<IActionResult> Google([FromBody] OAuthCallbackRequest req, CancellationToken ct)
         => OAuthLogin("google", req, ct);
 
+    /// <summary>Line OAuth 登入</summary>
+    /// <param name="req">OAuth 回調請求資料</param>
+    /// <param name="ct">取消權杖</param>
+    /// <returns>成功時返回 JWT Token 與使用者資訊 (HTTP 200)</returns>
     [HttpPost("line")]
     public Task<IActionResult> Line([FromBody] OAuthCallbackRequest req, CancellationToken ct)
         => OAuthLogin("line", req, ct);

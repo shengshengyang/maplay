@@ -7,14 +7,7 @@
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
         <RootNamespace>Maplay</RootNamespace>
         <NoWarn>$(NoWarn);1591</NoWarn>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)|$(Runtime)'=='Release|AnyCPU'">
-        <DocumentationFile>bin\Release\$(AssemblyName).xml</DocumentationFile>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)|$(Runtime)'=='Debug|AnyCPU'">
-        <DocumentationFile>bin\Debug\$(AssemblyName).xml</DocumentationFile>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
 
     <ItemGroup>

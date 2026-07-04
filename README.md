@@ -306,6 +306,31 @@ public class AppDbContext : DbContext
 - `POST /api/spots` - 新增景點 (需認證)
 - `GET /api/reviews` - 評價列表
 
+### JWT 認證測試流程
+
+1. **取得 JWT Token**:
+   ```bash
+   # 註冊���用戶
+   curl -X POST http://localhost:8080/api/auth/register \
+     -H "Content-Type: application/json" \
+     -d '{"email":"test@example.com","password":"Test123!","displayName":"測試用戶"}'
+
+   # 或登入取得 Token
+   curl -X POST http://localhost:8080/api/auth/login \
+     -H "Content-Type: application/json" \
+     -d '{"email":"test@example.com","password":"Test123!"}'
+   ```
+
+2. **在 Swagger UI 中設定 Token**:
+   - 點擊右上角「🔑 設定 Token」按鈕
+   - 貼上您的 JWT Token (不包含 Bearer 前綴)
+   - 重新載入頁面使設定生效
+
+3. **測試需要認證的端點**:
+   - 在 Swagger UI 中找到需要認證的端點 (標有🔐圖示)
+   - 點擊「Try it out」執行測試
+   - Token 會自動附加到請求頭中
+
 ### 認證機制
 
 - **JWT Token**: Access token (15分鐘) + Refresh token (7天)
